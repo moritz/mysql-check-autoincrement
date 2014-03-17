@@ -11,6 +11,7 @@ my %parms = (
     EXE_FILES           => [ 'check.autoincrement' ],
     PREREQ_PM => {
         'DBI'               => 0,
+        'DBD::mysql'        => 0,
         # the following are core modules
         'Getopt::Long'      => 0,
         'strict'            => 0,

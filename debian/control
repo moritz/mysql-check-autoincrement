@@ -13,6 +13,7 @@ Homepage: http://search.cpan.org/dist/App-Mysql-CheckAutoIncrement/
 Package: libapp-mysql-checkautoincrement-perl
 Architecture: all
 Depends: ${misc:Depends}, ${perl:Depends},
+ libdbd-mysql-perl,
  libdbi-perl,
  perl-base
 Description: check.autoincrement -- Check if mysql auto_increment columns are close to reaching overflow
