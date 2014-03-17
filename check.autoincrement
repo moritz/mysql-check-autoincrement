@@ -9,6 +9,8 @@ use Getopt::Long;
 
 binmode STDOUT, ':encoding(UTF-8)';
 
+our $VERSION = 1;
+
 GetOptions(
 	'verbosity=i'  => \(my $verbosity),
 	'critical=f'   => \(my $critical),
