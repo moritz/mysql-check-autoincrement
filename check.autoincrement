@@ -1,0 +1,201 @@
+#!/usr/bin/env perl
+use 5.010;
+use strict;
+use warnings;
+use utf8;
+use DBI;
+
+use Getopt::Long;
+
+binmode STDOUT, ':encoding(UTF-8)';
+
+GetOptions(
+	'verbosity=i'  => \(my $verbosity),
+	'critical=f'   => \(my $critical),
+	'warning=f'    => \(my $warning),
+	'dbhost=s'     => \(my $dbhost),	
+	'dbuser=s'     => \(my $dbuser),
+	'dbpass=s'     => \(my $dbpass),
+	'configfile=s' => \(my $configfile),
+);
+
+my %config;
+
+if ($configfile) {
+	open my $IN, '<:encoding(UTF-8)', $configfile
+		or die "Cannot open '$configfile' for reading: $!";
+	while (<$IN>) {
+		chomp;
+		next unless /\S/;
+		next if /^\s*#/;
+		if (/^\s*(\w+)\s*=\s*(\S(?:.*\S)?)\s*\z/) {
+			$config{$1} = $2;
+		}
+		else {
+			die qq[Cannot parse line "$_" in config file "$configfile" (should be: key=value)\n];
+		}
+	}
+}
+
+$verbosity //= $config{verbosity} // 0;
+$warning   //= $config{warning}   // 0.7;
+$critical  //= $config{critical}  // 0.85;
+$dbhost    //= $config{dbhost}    // 'localhost';
+$dbuser    //= $config{dbuser}    // 'root';
+$dbpass    //= $config{dbpass};
+
+my %max = (
+	bigint		=> 9223372036854775807,
+	int		=> 4294967295, 
+	integer		=> 4294967295, 
+	smallint 	=> 32767,
+	tinyint		=> 127,
+	mediumint	=> 8388607,
+);
+
+my $dbh = DBI->connect("dbi:mysql:datatbase=mysql;host=$dbhost", $dbuser, $dbpass, {RaiseError => 1});
+
+my $ai= $dbh->prepare(<<SQL);
+	SELECT c.table_catalog, c.table_schema, c.table_name, c.column_name, c.data_type, t.auto_increment
+      FROM information_schema.columns AS c
+      JOIN information_schema.tables  AS t
+	   ON c.table_catalog = t.table_catalog
+          AND c.table_schema  = t.table_schema
+	  AND c.table_name    = t.table_name
+      WHERE c.extra LIKE '%auto_increment%'
+      ORDER BY c.table_catalog, c.table_schema, c.table_name, c.column_name
+SQL
+
+$ai->execute;
+
+my $has_warnings = 0;
+my $has_critical = 0;
+
+
+my $db = '';
+
+my $max_record;
+while (my ($catalog, $database, $table, $column, $type, $auto_increment) = $ai->fetchrow_array) {
+	next unless defined $auto_increment;
+	my $max = $max{$type};
+	unless ($max) {
+		if ($verbosity >= 1) {
+			say "Don't know maximal value for data type $type";
+		}
+		next;
+	}
+	my $fill = $auto_increment / $max;
+	if ($verbosity >= 2) {
+	    say join "\t", $catalog, $database, $table, $column, $type, $auto_increment, $fill;
+	}
+	if ($fill >= $critical) {
+		$has_critical++;
+		printf "CRITICAL: %s.%s.%s at %.3f (%d/%d)\n", $database, $table, $column, $fill, $auto_increment, $max;
+	}
+	elsif ($fill >= $warning) {
+		$has_warnings++;
+		printf "WARNING: %s.%s.%s at %.3f (%d/%d)\n", $database, $table, $column, $fill, $auto_increment, $max;
+	}
+	if (!$max_record || $max_record->{fill} <= $fill) {
+		$max_record = {
+			database => $database,
+			table	 => $table,
+			column	 => $column,
+			value	 => $auto_increment,
+			max	 => $max,
+			fill	 => $fill,
+		};
+	}
+}
+$ai->finish;
+
+if (!$has_warnings && !$has_critical && $max_record) {
+	printf "OK (maximal value: : %s.%s.%s at %.3f (%d/%d))\n",  @{$max_record}{qw/database table column fill value max/};
+}
+
+if ($has_critical) {
+	exit 2;
+}
+elsif ($has_warnings) {
+	exit 1;
+}
+else {
+	exit 0;
+}
+
+__END__
+
+=encoding UTF-8
+
+=head1 NAME
+
+check.autoincrement -- Check if mysql auto_increment columns are close to reaching overflow
+
+=head1 SYNOPSIS
+
+	check.autoincrement --configfile=check-ai.conf
+
+Where check-ai.conf has the following format:
+
+	dbhost=hostname
+	dbuser=root
+	dbpass=verysecret
+	critical=0.85
+	warning=0.7
+	verbosity=0
+
+=head1 DESCRIPTION
+
+This script is intended for nrpe/nagios checks. It checks if auto_increment columns in mysql
+databases are approaching the maximal value, and warns if the output value exceeds the
+C<warning> or even C<critical> threshold values, which can  be configured.
+
+If the C<critical> threshold is exceeded by at least one column, the exit code is 2;
+otherwise, if the C<warning> threshold is execeeded, the exit code is 1.
+If everything is fine, the exit code is 0.
+
+=head1 CONFIGURATION
+
+The following configuration variables are available, and can be set either through the
+config file, or through command line options.
+
+The config file must be specified with C<--configfile=path/to/file>. The command line always
+takes precedence over the config file.
+
+=over
+
+=item dbhost
+
+The hostname of the database server. Defaults to C<localhost>.
+
+=item dbuser
+
+The database user. Defaults to C<root>.
+
+=item dbpass
+
+The password for the dabatabase user. Defaults to no password at all.
+
+=item critical
+
+The threshold above which fill factors are considered critical. Defaults to 0.85.
+
+=item warning
+
+The threshold above which fill factors are considered warnings. Defaults to 0.70.
+
+=item verbosity
+
+A number between 0 and 2 that controls the amount of output produced. Defaults to 0.
+
+=back
+
+=head1 AUTHOR
+
+Moritz Lenz <mlenz@noris.net> for noris network AG, Ticket 15769099.
+
+=cut
+
+
+# vim: ft=perl sw=4 ts=4  tw=78 expandtab cindent
+
