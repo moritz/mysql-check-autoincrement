@@ -1,0 +1,28 @@
+Source: libapp-mysql-checkautoincrement-perl
+Section: perl
+Priority: optional
+Maintainer: Moritz Lenz <mlenz@noris.net>
+Build-Depends: debhelper (>= 8)
+Build-Depends-Indep: libdbi-perl,
+ perl,
+ perl-base,
+ perl-modules
+Standards-Version: 3.9.2
+Homepage: http://search.cpan.org/dist/App-Mysql-CheckAutoIncrement/
+
+Package: libapp-mysql-checkautoincrement-perl
+Architecture: all
+Depends: ${misc:Depends}, ${perl:Depends},
+ libdbi-perl,
+ perl-base
+Description: check.autoincrement -- Check if mysql auto_increment columns are close to reaching overflow
+ This script is intended for nrpe/nagios checks. It checks if auto_increment
+ columns in mysql databases are approaching the maximal value, and warns if
+ the output value exceeds the warning or even critical threshold values, which
+ can be configured.
+ .
+ If the critical threshold is exceeded by at least one column, the exit code
+ is 2; otherwise, if the warning threshold is execeeded, the exit code is 1.
+ If everything is fine, the exit code is 0.
+ .
+ This description was automagically extracted from the module by dh-make-perl.

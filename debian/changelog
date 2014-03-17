@@ -1,0 +1,5 @@
+libapp-mysql-checkautoincrement-perl (1) wheezy; urgency=low
+
+  * Initial Release.
+
+ -- Moritz Lenz <mlenz@noris.net>  Mon, 17 Mar 2014 14:53:21 +0100
