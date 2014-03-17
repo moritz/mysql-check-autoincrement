@@ -1,0 +1,7 @@
+*~
+MYMETA.yml
+Makefile
+blib
+debian/files
+debian/libapp-mysql-checkautoincrement-perl*
+pm_to_blib
