@@ -12,31 +12,31 @@ binmode STDOUT, ':encoding(UTF-8)';
 our $VERSION = 1;
 
 GetOptions(
-	'verbosity=i'  => \(my $verbosity),
-	'critical=f'   => \(my $critical),
-	'warning=f'    => \(my $warning),
-	'dbhost=s'     => \(my $dbhost),	
-	'dbuser=s'     => \(my $dbuser),
-	'dbpass=s'     => \(my $dbpass),
-	'configfile=s' => \(my $configfile),
+    'verbosity=i'  => \(my $verbosity),
+    'critical=f'   => \(my $critical),
+    'warning=f'    => \(my $warning),
+    'dbhost=s'     => \(my $dbhost),	
+    'dbuser=s'     => \(my $dbuser),
+    'dbpass=s'     => \(my $dbpass),
+    'configfile=s' => \(my $configfile),
 );
 
 my %config;
 
 if ($configfile) {
-	open my $IN, '<:encoding(UTF-8)', $configfile
-		or die "Cannot open '$configfile' for reading: $!";
-	while (<$IN>) {
-		chomp;
-		next unless /\S/;
-		next if /^\s*#/;
-		if (/^\s*(\w+)\s*=\s*(\S(?:.*\S)?)\s*\z/) {
-			$config{$1} = $2;
-		}
-		else {
-			die qq[Cannot parse line "$_" in config file "$configfile" (should be: key=value)\n];
-		}
-	}
+    open my $IN, '<:encoding(UTF-8)', $configfile
+        or die "Cannot open '$configfile' for reading: $!";
+    while (<$IN>) {
+        chomp;
+        next unless /\S/;
+        next if /^\s*#/;
+        if (/^\s*(\w+)\s*=\s*(\S(?:.*\S)?)\s*\z/) {
+            $config{$1} = $2;
+        }
+        else {
+            die qq[Cannot parse line "$_" in config file "$configfile" (should be: key=value)\n];
+        }
+    }
 }
 
 $verbosity //= $config{verbosity} // 0;
@@ -47,25 +47,25 @@ $dbuser    //= $config{dbuser}    // 'root';
 $dbpass    //= $config{dbpass};
 
 my %max = (
-	bigint		=> 9223372036854775807,
-	int		=> 4294967295, 
-	integer		=> 4294967295, 
-	smallint 	=> 32767,
-	tinyint		=> 127,
-	mediumint	=> 8388607,
-);
+        bigint		=> 9223372036854775807,
+        int		=> 4294967295, 
+        integer		=> 4294967295, 
+        smallint 	=> 32767,
+        tinyint		=> 127,
+        mediumint	=> 8388607,
+        );
 
 my $dbh = DBI->connect("dbi:mysql:datatbase=mysql;host=$dbhost", $dbuser, $dbpass, {RaiseError => 1});
 
 my $ai= $dbh->prepare(<<SQL);
-	SELECT c.table_catalog, c.table_schema, c.table_name, c.column_name, c.data_type, t.auto_increment
-      FROM information_schema.columns AS c
-      JOIN information_schema.tables  AS t
-	   ON c.table_catalog = t.table_catalog
-          AND c.table_schema  = t.table_schema
-	  AND c.table_name    = t.table_name
-      WHERE c.extra LIKE '%auto_increment%'
-      ORDER BY c.table_catalog, c.table_schema, c.table_name, c.column_name
+SELECT c.table_catalog, c.table_schema, c.table_name, c.column_name, c.data_type, t.auto_increment
+    FROM information_schema.columns AS c
+    JOIN information_schema.tables  AS t
+         ON c.table_catalog = t.table_catalog
+        AND c.table_schema  = t.table_schema
+        AND c.table_name    = t.table_name
+    WHERE c.extra LIKE '%auto_increment%'
+    ORDER BY c.table_catalog, c.table_schema, c.table_name, c.column_name
 SQL
 
 $ai->execute;
@@ -78,51 +78,51 @@ my $db = '';
 
 my $max_record;
 while (my ($catalog, $database, $table, $column, $type, $auto_increment) = $ai->fetchrow_array) {
-	next unless defined $auto_increment;
-	my $max = $max{$type};
-	unless ($max) {
-		if ($verbosity >= 1) {
-			say "Don't know maximal value for data type $type";
-		}
-		next;
-	}
-	my $fill = $auto_increment / $max;
-	if ($verbosity >= 2) {
-	    say join "\t", $catalog, $database, $table, $column, $type, $auto_increment, $fill;
-	}
-	if ($fill >= $critical) {
-		$has_critical++;
-		printf "CRITICAL: %s.%s.%s at %.3f (%d/%d)\n", $database, $table, $column, $fill, $auto_increment, $max;
-	}
-	elsif ($fill >= $warning) {
-		$has_warnings++;
-		printf "WARNING: %s.%s.%s at %.3f (%d/%d)\n", $database, $table, $column, $fill, $auto_increment, $max;
-	}
-	if (!$max_record || $max_record->{fill} <= $fill) {
-		$max_record = {
-			database => $database,
-			table	 => $table,
-			column	 => $column,
-			value	 => $auto_increment,
-			max	 => $max,
-			fill	 => $fill,
-		};
-	}
+    next unless defined $auto_increment;
+    my $max = $max{$type};
+    unless ($max) {
+        if ($verbosity >= 1) {
+            say "Don't know maximal value for data type $type";
+        }
+        next;
+    }
+    my $fill = $auto_increment / $max;
+    if ($verbosity >= 2) {
+        say join "\t", $catalog, $database, $table, $column, $type, $auto_increment, $fill;
+    }
+    if ($fill >= $critical) {
+        $has_critical++;
+        printf "CRITICAL: %s.%s.%s at %.3f (%d/%d)\n", $database, $table, $column, $fill, $auto_increment, $max;
+    }
+    elsif ($fill >= $warning) {
+        $has_warnings++;
+        printf "WARNING: %s.%s.%s at %.3f (%d/%d)\n", $database, $table, $column, $fill, $auto_increment, $max;
+    }
+    if (!$max_record || $max_record->{fill} <= $fill) {
+        $max_record = {
+            database => $database,
+            table	 => $table,
+            column	 => $column,
+            value	 => $auto_increment,
+            max	 => $max,
+            fill	 => $fill,
+        };
+    }
 }
 $ai->finish;
 
 if (!$has_warnings && !$has_critical && $max_record) {
-	printf "OK (maximal value: : %s.%s.%s at %.3f (%d/%d))\n",  @{$max_record}{qw/database table column fill value max/};
+    printf "OK (maximal value: : %s.%s.%s at %.3f (%d/%d))\n",  @{$max_record}{qw/database table column fill value max/};
 }
 
 if ($has_critical) {
-	exit 2;
+    exit 2;
 }
 elsif ($has_warnings) {
-	exit 1;
+    exit 1;
 }
 else {
-	exit 0;
+    exit 0;
 }
 
 __END__
@@ -135,16 +135,16 @@ check.autoincrement -- Check if mysql auto_increment columns are close to reachi
 
 =head1 SYNOPSIS
 
-	check.autoincrement --configfile=check-ai.conf
+check.autoincrement --configfile=check-ai.conf
 
 Where check-ai.conf has the following format:
 
-	dbhost=hostname
-	dbuser=root
-	dbpass=verysecret
-	critical=0.85
-	warning=0.7
-	verbosity=0
+dbhost=hostname
+dbuser=root
+dbpass=verysecret
+critical=0.85
+warning=0.7
+verbosity=0
 
 =head1 DESCRIPTION
 
