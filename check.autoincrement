@@ -47,18 +47,24 @@ $dbuser    //= $config{dbuser}    // 'root';
 $dbpass    //= $config{dbpass};
 
 my %max = (
-        bigint		=> 9223372036854775807,
-        int		=> 4294967295, 
-        integer		=> 4294967295, 
-        smallint 	=> 32767,
-        tinyint		=> 127,
-        mediumint	=> 8388607,
-        );
+    unsigned_bigint    => 18446744073709551615,
+    unsigned_int       => 4294967295,
+    unsigned_integer   => 4294967295,
+    unsigned_smallint  => 65535,
+    unsigned_tinyint   => 255,
+    unsigned_mediumint => 16777215,
+    signed_bigint      => 9223372036854775807,
+    signed_int         => 2147483647,
+    signed_integer     => 2147483647,
+    signed_smallint    => 32767,
+    signed_tinyint     => 127,
+    signed_mediumint   => 8388607,
+);
 
 my $dbh = DBI->connect("dbi:mysql:datatbase=mysql;host=$dbhost", $dbuser, $dbpass, {RaiseError => 1});
 
-my $ai= $dbh->prepare(<<SQL);
-SELECT c.table_catalog, c.table_schema, c.table_name, c.column_name, c.data_type, t.auto_increment
+my $ai = $dbh->prepare(<<SQL);
+SELECT c.table_catalog, c.table_schema, c.table_name, c.column_name, c.data_type, t.auto_increment, c.column_type
     FROM information_schema.columns AS c
     JOIN information_schema.tables  AS t
          ON c.table_catalog = t.table_catalog
@@ -77,18 +83,20 @@ my $has_critical = 0;
 my $db = '';
 
 my $max_record;
-while (my ($catalog, $database, $table, $column, $type, $auto_increment) = $ai->fetchrow_array) {
+while (my ($catalog, $database, $table, $column, $type, $auto_increment, $column_type) = $ai->fetchrow_array) {
     next unless defined $auto_increment;
-    my $max = $max{$type};
+    my $type_with_signed = ( $column_type =~ /unsigned/ ) ? "unsigned_$type" : "signed_$type";
+    my $max = $max{$type_with_signed};
     unless ($max) {
         if ($verbosity >= 1) {
-            say "Don't know maximal value for data type $type";
+            say "Don't know maximal value for data type $type_with_signed";
         }
         next;
     }
     my $fill = $auto_increment / $max;
     if ($verbosity >= 2) {
-        say join "\t", $catalog, $database, $table, $column, $type, $auto_increment, $fill;
+        say join "\t", $catalog, $database, $table, $column, $type_with_signed,
+        $auto_increment, $fill;
     }
     if ($fill >= $critical) {
         $has_critical++;
