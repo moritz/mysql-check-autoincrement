@@ -9,7 +9,7 @@ use Getopt::Long;
 
 binmode STDOUT, ':encoding(UTF-8)';
 
-our $VERSION = 2;
+our $VERSION = 3;
 
 GetOptions(
     'verbosity=i'  => \(my $verbosity),

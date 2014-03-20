@@ -1,3 +1,9 @@
+libapp-mysql-checkautoincrement-perl (3) wheezy; urgency=low
+
+  * Support for unsigned types
+
+ -- Moritz Lenz <mlenz@noris.net>  Thu, 20 Mar 2014 14:58:42 +0100
+
 libapp-mysql-checkautoincrement-perl (2) wheezy; urgency=low
 
   * Missing dependency
