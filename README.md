@@ -12,6 +12,6 @@ By default it produces a `WARNING` if any autoincrement value reaches
 
 Please run
 
-    perldoc -f check.autoincrement
+    perldoc -F check.autoincrement
 
 to read the tool's documentation, including the options.
