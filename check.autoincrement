@@ -143,16 +143,16 @@ check.autoincrement -- Check if mysql auto_increment columns are close to reachi
 
 =head1 SYNOPSIS
 
-check.autoincrement --configfile=check-ai.conf
+    check.autoincrement --configfile=check-ai.conf
 
 Where check-ai.conf has the following format:
 
-dbhost=hostname
-dbuser=root
-dbpass=verysecret
-critical=0.85
-warning=0.7
-verbosity=0
+    dbhost=hostname
+    dbuser=root
+    dbpass=verysecret
+    critical=0.85
+    warning=0.7
+    verbosity=0
 
 =head1 DESCRIPTION
 
