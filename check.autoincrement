@@ -61,7 +61,7 @@ my %max = (
     signed_mediumint   => 8388607,
 );
 
-my $dbh = DBI->connect("dbi:mysql:datatbase=mysql;host=$dbhost", $dbuser, $dbpass, {RaiseError => 1});
+my $dbh = DBI->connect("dbi:mysql:database=mysql;host=$dbhost", $dbuser, $dbpass, {RaiseError => 1});
 
 my $ai = $dbh->prepare(<<SQL);
 SELECT c.table_catalog, c.table_schema, c.table_name, c.column_name, c.data_type, t.auto_increment, c.column_type
